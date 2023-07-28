@@ -79,6 +79,12 @@ class User():
         return total
     
 
+def stop(con):
+    
+    con.close()
+    sys.exit()
+
+
 def return_users(con):
 
     cur = con.cursor()
@@ -118,7 +124,7 @@ def boot_up(con):
 
     if len(users) == 0:
         
-        print("No user found.\n Please create a new one")
+        print(f"{Fore.BLUE}Welcome new user!\n{Style.RESET_ALL}\nPlease create a new user")
         current_user = new_user(con)
         return current_user
     
@@ -127,29 +133,39 @@ def boot_up(con):
         while True:
             
             true_size = len(users)
-            total_size = true_size + 1
+            total_size = true_size + 2
             
-            print(f"Please choose an user (1 - {total_size}):\n")
+            print(total_size)
+
+            print(f"\n{Fore.BLUE}Welcome back!{Style.RESET_ALL}\n")
+            print(f"{Fore.CYAN}Please choose an user (1 - {total_size}):{Style.RESET_ALL}\n")
             
             for i in range(true_size):
-                print(str(i + 1) + f" - {users[i]}")
-            print(str(total_size) + " - Create new user")
+                print(str(i + 1) + f" - {users[i]}\n")
+            print(str(total_size - 1) + " - Create new user\n")
+            print(str(total_size) + " - Exit\n")
 
             choice = input()
             
             try:
+                
                 choice = int(choice)
+            
             except ValueError:
-                print(f"{Fore.RED}{choice} is not a valid option - (1 - {total_size}){Style.RESET_ALL}")
+
+                print(f"{Fore.RED}{choice} is not a valid option - (1 - {total_size}){Style.RESET_ALL}\n")
                 continue                               
             
-            if choice not in range(true_size):
-                
-                print(f"{Fore.RED}{choice} is not a valid option - (1 - {total_size}){Style.RESET_ALL}")
+            if choice not in range(1, total_size + 1):
+
+                print(f"{Fore.RED}{choice} is not a valid option - (1 - {total_size}){Style.RESET_ALL}\n")
                 continue 
             else:
                 
                 if choice == total_size:
+                    stop(con)
+                
+                elif choice == total_size - 1:
                     current_user = new_user(con)
                     return current_user
                 else:
@@ -157,12 +173,11 @@ def boot_up(con):
                     return current_user
 
 
-
-
-
 def main():
     con = sqlite3.connect("test.db")
     
-    current_user = boot_up()
+    current_user = boot_up(con)
+
+    con.close()
 
 main()
