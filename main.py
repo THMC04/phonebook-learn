@@ -73,3 +73,20 @@ class User():
                     total += 1
         
         return total
+    
+
+def return_users(con):
+
+    cur = con.cursor()
+
+    sql_c = """
+    SELECT name FROM sqlite_master WHERE type='table';
+    """
+    
+    res = cur.execute(sql_c)
+    values = res.fetchall()
+    final_values = []
+    for entry in values:
+        final_values.append(entry[0])
+    
+    return final_values
