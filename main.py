@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import sys
 from colorama import Fore, Style
 
 
@@ -67,8 +68,11 @@ class User():
             
             for line in f.readlines():
                 check = True
+                
                 code, number, name = line.split(" ").strip()
+                
                 check = self.add_entry(number, name, code)
+                
                 if check:
                     total += 1
         
@@ -90,3 +94,75 @@ def return_users(con):
         final_values.append(entry[0])
     
     return final_values
+
+
+def new_user(con):
+    
+    while True:
+        name = input("What is the new user's name?\n")
+        
+        if len(name) == 15:
+            
+            print(f"{Fore.RED}That name is too long. PLease input a new one{Style.RESET_ALL}")
+            continue  
+        else:
+            
+            current_user = User(name, con)
+            current_user.create_table()
+            return current_user
+
+
+def boot_up(con):
+    
+    users = return_users(con)
+
+    if len(users) == 0:
+        
+        print("No user found.\n Please create a new one")
+        current_user = new_user(con)
+        return current_user
+    
+    else:
+        
+        while True:
+            
+            true_size = len(users)
+            total_size = true_size + 1
+            
+            print(f"Please choose an user (1 - {total_size}):\n")
+            
+            for i in range(true_size):
+                print(str(i + 1) + f" - {users[i]}")
+            print(str(total_size) + " - Create new user")
+
+            choice = input()
+            
+            try:
+                choice = int(choice)
+            except ValueError:
+                print(f"{Fore.RED}{choice} is not a valid option - (1 - {total_size}){Style.RESET_ALL}")
+                continue                               
+            
+            if choice not in range(true_size):
+                
+                print(f"{Fore.RED}{choice} is not a valid option - (1 - {total_size}){Style.RESET_ALL}")
+                continue 
+            else:
+                
+                if choice == total_size:
+                    current_user = new_user(con)
+                    return current_user
+                else:
+                    current_user = User(users[choice - 1], con)
+                    return current_user
+
+
+
+
+
+def main():
+    con = sqlite3.connect("test.db")
+    
+    current_user = boot_up()
+
+main()
