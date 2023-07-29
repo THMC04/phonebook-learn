@@ -33,6 +33,7 @@ class User():
         sql_c = f"""
         INSERT INTO {self.name} VALUES (?, ?, ?);
         """
+        
         try:
             cur.execute(sql_c,(number,name,code))
         except sqlite3.IntegrityError:
@@ -80,8 +81,8 @@ class User():
     
     def look_up(self, number = None, name = None):
 
-        cur = self.con.cursor()
-
+        cur = self.con.cursor()       
+        
         if number != None:
             sql_c = f"""SELECT Name FROM {self.name} Where Number ==  ?;"""
             res = cur.execute(sql_c, (number,))
@@ -89,8 +90,27 @@ class User():
             sql_c = f"""SELECT Number FROM {self.name} Where Name ==  ?;"""
             res = cur.execute(sql_c, (name,))
 
-        value = res.fetchall()
+        values = res.fetchall()
+        final_values = tpl_lst_to_lst(values)
+        return final_values
 
+    def get_all(self):
+
+        cur = self.con.cursor()
+
+        sql_c = f"""SELECT Name, CountryCode, Number FROM {self.name} ORDER BY Name;"""
+
+        res = cur.execute(sql_c)
+        values = res.fetchall()
+        
+        final_values = []
+        for elem in values:
+            inter_values = []
+            for value in elem:
+                inter_values.append(value)
+            final_values.append(inter_values)
+        
+        return final_values
         
 def stop(con):
     
@@ -108,9 +128,17 @@ def return_users(con):
     
     res = cur.execute(sql_c)
     values = res.fetchall()
+    final_values = tpl_lst_to_lst(values)
+    
+    return final_values
+
+
+def tpl_lst_to_lst(tuple_list):
+    
     final_values = []
-    for entry in values:
-        final_values.append(entry[0])
+    
+    for elem in tuple_list:
+        final_values.append(elem[0])
     
     return final_values
 
@@ -193,4 +221,7 @@ def main():
 
     con.close()
 
-main()
+if __name__ == "__main__":
+
+    main()
+    
