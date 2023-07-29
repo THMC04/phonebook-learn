@@ -78,7 +78,20 @@ class User():
         
         return total
     
+    def look_up(self, number = None, name = None):
 
+        cur = self.con.cursor()
+
+        if number != None:
+            sql_c = f"""SELECT Name FROM {self.name} Where Number ==  ?;"""
+            res = cur.execute(sql_c, (number,))
+        elif name != None:
+            sql_c = f"""SELECT Number FROM {self.name} Where Name ==  ?;"""
+            res = cur.execute(sql_c, (name,))
+
+        value = res.fetchall()
+
+        
 def stop(con):
     
     con.close()
