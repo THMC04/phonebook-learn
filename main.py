@@ -243,7 +243,7 @@ def boot_up(con):
             print(str(total_size - 1) + " - Delete a user\n")
             print(str(total_size) + " - Exit\n")
 
-            choice = input()
+            choice = input().strip()
             
             flag, choice = input_check(choice, total_size)
 
@@ -304,7 +304,7 @@ def operations(user):
         print("6 - Insert large amount of numbers")
         print("7 - Return\n")
 
-        choice = input()
+        choice = input().strip()
         
         if choice == "res_11037":
             user.con.close()
@@ -322,7 +322,7 @@ def operations(user):
             case 2:
                 search_phonebook(user)
             case 3:
-                pass
+                add_number(user)
             case 4:
                 pass
             case 5:
@@ -338,7 +338,7 @@ def search_phonebook(user):
     number = True
     print(f"\n{Fore.CYAN}Please input a name or a number:{Style.RESET_ALL}\n")
 
-    choice = input()
+    choice = input().strip()
     
     try:
         int(choice)
@@ -361,7 +361,69 @@ def search_phonebook(user):
     input("\nPress ENTER when done\n")
 
 
+def add_number(user):
+
+    while True:
+
+        print(f"{Fore.CYAN}\nPlease input the name:\n{Style.RESET_ALL}")
+        
+        name = input().strip()
+
+        if len(name) == 0 or len(name) >= 20:
+            print(f"{Fore.RED}\nPlease input a name of valid size.{Style.RESET_ALL}")
+            continue
+        
+        break
+    
+    while True:
+
+        print(f"{Fore.CYAN}\nPlease input the code and number separated by a space:{Style.RESET_ALL}")
+
+        data = list(input().strip().split(" "))
+
+        if len(data) == 1:
+            
+            print(f"{Fore.RED}\nPlease make sure the code and number are separated.{Style.RESET_ALL}")
+            continue
+        
+        if len(data) > 2 or len(data) == 0:
+            
+            print(f"{Fore.RED}\nPlease input a valid code and number.{Style.RESET_ALL}")
+            continue
+        
+        if data[1].isdigit() == False:
+
+            print(f"{Fore.RED}\nNumber can only contain digits. Please try again{Style.RESET_ALL}")
+            continue
+        elif len(data[1]) > 12 or len(data[1]) < 4:
+            
+            print(f"{Fore.RED}\nPlease input a valid number size.{Style.RESET_ALL}")
+            continue
+        else:
+            number = data[1]
+        
+        if data[0][0] != "+":
+            code = "+" + data[0]
+        else:
+            code = data[0]
+
+        if code[1:].isdigit() == False:
+            print(f"{Fore.RED}\nCode can only contain a + symbol followed by numbers. Please try again{Style.RESET_ALL}")
+            continue
+        
+        if len(code) > 4 or len(code) < 2:
+            print(f"{Fore.RED}\nPlease input a valid code size.{Style.RESET_ALL}")
+            continue
+        
+        break
+
+    user.add_entry(number, name, code)
+
+
+
+
 def main():
+    
     con = sqlite3.connect("phonebook_data.db")
     
     while True:
