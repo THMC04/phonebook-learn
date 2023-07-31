@@ -6,6 +6,11 @@ import tabulate
 import string
 
 
+class NoResultFoundException(Exception):
+    "Raised when return given by the SQL command"
+    pass
+
+
 class User():
     def __init__(self, name, con):
         self.name = name
@@ -60,8 +65,8 @@ class User():
         sql_c = f"""
         DELETE FROM [{self.name}] WHERE Number = ?;
         """
-
         cur.execute(sql_c, (number,))
+        
         self.con.commit()
     
     def replace_entry(self, number, code, new_name):
@@ -94,14 +99,22 @@ class User():
         cur = self.con.cursor()       
         
         if number != None:
-            sql_c = f"""SELECT Name, CountryCode, Number FROM [{self.name}] Where Number ==  ?;"""
+            number = f"%{number}%"
+            sql_c = f"""SELECT Name, CountryCode, Number FROM [{self.name}] WHERE Number LIKE ?;"""
             res = cur.execute(sql_c, (number,))
+        
         elif name != None:
-            sql_c = f"""SELECT Name, CountryCode, Number FROM [{self.name}] Where Name ==  ?;"""
+            name = f"%{name}%"
+            sql_c = f"""SELECT Name, CountryCode, Number FROM [{self.name}] WHERE Name LIKE ?;"""
             res = cur.execute(sql_c, (name,))
-
+        
         values = res.fetchall()
+
         final_values = tpl_lst_to_lst(values)
+        
+        if len(final_values) == 0:
+            raise NoResultFoundException
+        
         return final_values
 
     def get_all(self):
@@ -320,11 +333,11 @@ def operations(user):
             case 1:
                 pass
             case 2:
-                search_phonebook(user)
+                search_phonebook_single(user)
             case 3:
                 add_number(user)
             case 4:
-                pass
+                remove_number(user)
             case 5:
                 pass
             case 6:
@@ -333,7 +346,7 @@ def operations(user):
                 return
 
 
-def search_phonebook(user):
+def search_phonebook_single(user):
 
     number = True
     print(f"\n{Fore.CYAN}Please input a name or a number:{Style.RESET_ALL}\n")
@@ -345,20 +358,28 @@ def search_phonebook(user):
     except ValueError:
         number = False
     
+    no_res = False
+
     if number:
-        res = user.look_up(number = choice)
+        try:
+            res = user.look_up(number = choice)
+        except NoResultFoundException:
+            print("\nNo users found.")
+            no_res = True
     else:
-        res = user.look_up(name = choice)
-
-    if len(res) == 0:
-
-        print("\nNo users found.")
-    else:
+        try: 
+            res = user.look_up(name = choice)
+        except NoResultFoundException:
+            print("\nNo users found.")
+            no_res = True
+    
+    if no_res == False:
+        
         headers = ["Name", "Country Code", "Number"]
 
         print(tabulate.tabulate(res, headers, tablefmt="pretty"))
 
-    input("\nPress ENTER when done\n")
+    input("\nPress ENTER to continue\n")
 
 
 def add_number(user):
@@ -372,7 +393,9 @@ def add_number(user):
         if len(name) == 0 or len(name) >= 20:
             print(f"{Fore.RED}\nPlease input a name of valid size.{Style.RESET_ALL}")
             continue
-        
+        if name.isdigit() == True:
+            print(f"{Fore.RED}\nName cannot be composed of only digits. Please try again.{Style.RESET_ALL}")
+            continue
         break
     
     while True:
@@ -420,6 +443,26 @@ def add_number(user):
     user.add_entry(number, name, code)
 
 
+def remove_number(user):
+
+    print(f"{Fore.CYAN}\nPlease input the number to remove:{Style.RESET_ALL}")
+
+    number = input().strip()
+    
+    try:
+        res = user.look_up(number)  
+    except NoResultFoundException:
+        print("\nUser not Found.\n")
+    else:
+        if len(res) != 1:
+            print(f"{Fore.RED}\nMultiple users found please try again.{Style.RESET_ALL}\n")
+        elif len(number) < 4 or len(number) > 12:
+            print(f"{Fore.RED}\nPlease input a valid number{Style.RESET_ALL}\n")
+        else:
+            user.remove_entry(number)
+            print(f"\n{res[0][0]} (nº{res[0][2]}) was deleted.\n")
+
+    input("Press ENTER to continue")
 
 
 def main():
