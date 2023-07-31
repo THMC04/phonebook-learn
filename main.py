@@ -68,10 +68,11 @@ class User():
         self.con.commit()
     
 
-    def replace_entry(self, number, code, new_name):
-
+    def replace_entry(self, number, new_name):
+        
+        data = self.look_up(number=number)
         self.remove_entry(number)
-        self.add_entry(number, new_name, code)
+        self.add_entry(number, new_name, data[0][1])
     
 
     def import_data(self, file):
@@ -175,7 +176,7 @@ def gen_table(res):
 
         headers = ["Name", "Country Code", "Number"]
 
-        print(tabulate.tabulate(res, headers, tablefmt="pretty")) 
+        print("\n" + tabulate.tabulate(res, headers, tablefmt="pretty")) 
 
 
 def return_users(con):
@@ -220,7 +221,7 @@ def new_user(con):
         if failed:
             continue
         
-        if len(name) >= 14:
+        if len(name) >= 15:
             
             error_txt("\nThat name is too long. PLease input a new one\n")
             continue  
@@ -354,7 +355,7 @@ def operations(user):
             case 4:
                 remove_number(user)
             case 5:
-                pass
+                change_number_name(user)
             case 6:
                 pass
             case 7:
@@ -385,17 +386,17 @@ def show_phonebook(user):
             print(f"\nPage {page} out of {total_pages}\n")
             
             if total_pages == 1:
-                print("1 - Return")
+                print("1 - Return\n")
             elif page == 1:
                 print("1 - Next Page")
-                print("2 - Return")
+                print("2 - Return\n")
             elif page == total_pages:
                 print("1 - Previous Page")
-                print("2 - Return")
+                print("2 - Return\n")
             else:
                 print("1 - Next Page")
                 print("2 - Previous Page")
-                print("3 - Return")
+                print("3 - Return\n")
 
             choice = input().strip()
 
@@ -466,21 +467,21 @@ def add_number(user):
 
     while True:
 
-        error_txt("\nPlease input the name:\n")
+        header_txt("\nPlease input the name:\n")
         
         name = input().strip()
 
         if len(name) == 0 or len(name) >= 20:
             error_txt("\nPlease input a name of valid size.")
             continue
-        if name.isdigit() == True:
+        if name.isdigit():
             error_txt("\nName cannot be composed of only digits. Please try again.")
             continue
         break
     
     while True:
 
-        header_txt("\nPlease input the code and number separated by a space:")
+        header_txt("\nPlease input the code and number separated by a space:\n")
 
         data = list(input().strip().split(" "))
 
@@ -523,7 +524,10 @@ def add_number(user):
         user.add_entry(number, name, code)
     except sqlite3.IntegrityError:
         error_txt(f"Failed to add {number} to list.\nCAUSE: Already added.")
-        
+    else:
+        print("\nNumber added.\n")
+        input("Press ENTER to continue\n")
+
 
 def remove_number(user):
 
@@ -532,7 +536,7 @@ def remove_number(user):
     number = input().strip()
     
     try:
-        res = user.look_up(number)  
+        res = user.look_up(number = number)  
     except NoResultFoundException:
         print("\nUser not Found.\n")
     else:
@@ -544,7 +548,50 @@ def remove_number(user):
             user.remove_entry(number)
             print(f"\n{res[0][0]} (nº{res[0][2]}) was deleted.\n")
 
-    input("Press ENTER to continue")
+    input("Press ENTER to continue\n")
+
+
+def change_number_name(user):
+
+    while True:
+        header_txt("\nPlease input the number who's name you want to change:\n")
+
+        number = input().strip()
+        
+        try:
+            data = user.look_up(number = number)
+        except NoResultFoundException:
+            error_txt("Number not found. Please try again.\n")
+            continue
+        
+        if len(data) > 1:
+            error_txt("Multiple users found. Please try again.\n")
+            continue
+        if number.isdigit() == False: 
+            error_txt("Please input a valid number.\n")
+            continue    
+        
+        break
+
+    while True:
+
+        header_txt("\nPlease input the new name:\n")
+
+        name = input().strip()
+
+        if len(name) == 0 or len(name) >= 20:
+            error_txt("\nPlease input a name of valid size.")
+            continue
+        if name.isdigit():
+            error_txt("\nName cannot be composed of only digits. Please try again.")
+            continue
+        
+        break
+
+    user.replace_entry(number, name)
+    
+    print(f"\n{data[0][0]} was changed to {name}.\n")
+    input("Press ENTER to continue\n")
 
 
 def main():
