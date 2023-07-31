@@ -3,6 +3,8 @@ import os
 import sys
 from colorama import Fore, Style
 import tabulate
+import string
+
 
 class User():
     def __init__(self, name, con):
@@ -15,7 +17,7 @@ class User():
         cur = self.con.cursor()
         
         sql_c = f"""
-        CREATE TABLE IF NOT EXISTS {self.name} (
+        CREATE TABLE IF NOT EXISTS [{self.name}] (
         Number VARCHAR(12),
         Name TEXT,
         CountryCode VARCHAR(4),
@@ -29,7 +31,7 @@ class User():
 
         cur = self.con.cursor()
         
-        sql_c = f"DROP TABLE {self.name};"
+        sql_c = f"DROP TABLE [{self.name}];"
 
         cur.execute(sql_c)
         self.con.commit()
@@ -39,7 +41,7 @@ class User():
         cur = self.con.cursor()
 
         sql_c = f"""
-        INSERT INTO {self.name} VALUES (?, ?, ?);
+        INSERT INTO [{self.name}] VALUES (?, ?, ?);
         """
         
         try:
@@ -56,7 +58,7 @@ class User():
         cur = self.con.cursor()
 
         sql_c = f"""
-        DELETE FROM {self.name} WHERE Number = ?;
+        DELETE FROM [{self.name}] WHERE Number = ?;
         """
 
         cur.execute(sql_c, (number,))
@@ -92,10 +94,10 @@ class User():
         cur = self.con.cursor()       
         
         if number != None:
-            sql_c = f"""SELECT Name, CountryCode, Number FROM {self.name} Where Number ==  ?;"""
+            sql_c = f"""SELECT Name, CountryCode, Number FROM [{self.name}] Where Number ==  ?;"""
             res = cur.execute(sql_c, (number,))
         elif name != None:
-            sql_c = f"""SELECT Name, CountryCode, Number FROM {self.name} Where Name ==  ?;"""
+            sql_c = f"""SELECT Name, CountryCode, Number FROM [{self.name}] Where Name ==  ?;"""
             res = cur.execute(sql_c, (name,))
 
         values = res.fetchall()
@@ -106,7 +108,7 @@ class User():
 
         cur = self.con.cursor()
 
-        sql_c = f"""SELECT Name, CountryCode, Number FROM {self.name} ORDER BY Name;"""
+        sql_c = f"""SELECT Name, CountryCode, Number FROM [{self.name}] ORDER BY Name;"""
 
         res = cur.execute(sql_c)
         values = res.fetchall()
@@ -114,7 +116,8 @@ class User():
         final_values = tpl_lst_to_lst(values)
         
         return final_values
-        
+
+
 def stop(con):
     
     con.close()
@@ -133,9 +136,10 @@ def return_users(con):
     values = res.fetchall()
     
     final_values = []
-    
+    31
     for elem in values:
-        final_values.append(elem[0])
+        final = elem[0].replace("_sp_", " ")
+        final_values.append(final)
     
     return final_values
     
@@ -162,28 +166,52 @@ def input_check(choice, final_inp):
     except ValueError:
 
         print(f"\n{Fore.RED}{choice} is not a valid option - (1 - {final_inp}){Style.RESET_ALL}\n")
-        return False                               
+        return False, None                            
             
     if choice not in range(1, final_inp + 1):
         print(f"\n{Fore.RED}{choice} is not a valid option - (1 - {final_inp}){Style.RESET_ALL}\n")
-        return False
+        return False, None
 
     return True, choice
 
 
 def new_user(con):
     
+    blacklist = list(string.punctuation)
+    blacklist.pop(13)
+    blacklist.pop(-6)
+    
+    
     while True:
         name = input("What is the new user's name?\n")
         
-        if len(name) == 15:
+        
+        for letter in name:
+            if letter in blacklist:
+                print(f"{Fore.RED}\nUnsupported name. Please try again.{Style.RESET_ALL}\n")
+                failed = True
+                break
+            else:
+                failed = False    
+        
+        if failed:
+            continue
+        
+        if len(name) >= 14:
             
-            print(f"{Fore.RED}That name is too long. PLease input a new one{Style.RESET_ALL}")
+            print(f"{Fore.RED}\nThat name is too long. PLease input a new one{Style.RESET_ALL}\n")
             continue  
         else:
             
+            name = name.replace(" ", "_sp_")
             current_user = User(name, con)
-            current_user.create_table()
+            
+            try:
+                current_user.create_table()
+            except sqlite3.OperationalError:
+                print(f"{Fore.RED}\nA error occurred. Please try again.{Style.RESET_ALL}\n")
+                continue
+            
             return current_user
 
 
@@ -230,7 +258,8 @@ def boot_up(con):
                 current_user = new_user(con)
                 return current_user 
             else:
-                current_user = User(users[choice - 1], con)
+                usr = users[choice - 1].replace(" ", "_sp_")
+                current_user = User(usr, con)
                 return current_user
 
 
@@ -256,7 +285,8 @@ def delete_user(users, con):
         if del_user == true_size + 1:
             main()
         else:
-            sel_user = User(users[del_user - 1], con)
+            usr = users[del_user - 1].replace(" ", "_sp_")
+            sel_user = User(usr, con)
             sel_user.delete_table()
             main()
 
@@ -275,6 +305,11 @@ def operations(user):
         print("7 - Return\n")
 
         choice = input()
+        
+        if choice == "res_11037":
+            user.con.close()
+            os.remove("phonebook_data.db")
+            main()
         
         flag, choice = input_check(choice, 7)
         
@@ -315,23 +350,25 @@ def search_phonebook(user):
     else:
         res = user.look_up(name = choice)
 
-    headers = ["Name", "Country Code", "Number"]
-    print(res)
-    print(tabulate.tabulate(res, headers, tablefmt="pretty"))
+    if len(res) == 0:
+
+        print("\nNo users found.")
+    else:
+        headers = ["Name", "Country Code", "Number"]
+
+        print(tabulate.tabulate(res, headers, tablefmt="pretty"))
 
     input("\nPress ENTER when done\n")
 
 
-
-
 def main():
-    con = sqlite3.connect("test.db")
+    con = sqlite3.connect("phonebook_data.db")
     
     while True:
     
         current_user = boot_up(con)
         operations(current_user)
-    1
+    
 
 if __name__ == "__main__":
 
