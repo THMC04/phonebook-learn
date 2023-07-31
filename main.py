@@ -4,6 +4,7 @@ import sys
 from colorama import Fore, Style
 import tabulate
 import string
+import math
 
 
 class NoResultFoundException(Exception):
@@ -32,6 +33,7 @@ class User():
         cur.execute(sql_c)
         self.con.commit()
 
+
     def delete_table(self):
 
         cur = self.con.cursor()
@@ -41,19 +43,15 @@ class User():
         cur.execute(sql_c)
         self.con.commit()
     
+
     def add_entry(self, number, name, code):
         
         cur = self.con.cursor()
 
         sql_c = f"""
         INSERT INTO [{self.name}] VALUES (?, ?, ?);
-        """
-        
-        try:
-            cur.execute(sql_c,(number,name,code))
-        except sqlite3.IntegrityError:
-            print(f"{Fore.RED}Failed to add {number} to list.\nCAUSE: Already added{Style.RESET_ALL}")
-            return False
+        """   
+        cur.execute(sql_c,(number,name,code))
         
         self.con.commit()
     
@@ -69,6 +67,7 @@ class User():
         
         self.con.commit()
     
+
     def replace_entry(self, number, code, new_name):
 
         self.remove_entry(number)
@@ -79,20 +78,12 @@ class User():
        
         with open(file, "r", encoding="utf-8") as f:
             
-            # Amount of entries successfully added
-            total = 0
-            
             for line in f.readlines():
-                check = True
                 
                 code, number, name = line.split(" ").strip()
                 
-                check = self.add_entry(number, name, code)
-                
-                if check:
-                    total += 1
-        
-        return total
+                self.add_entry(number, name, code)
+
     
     def look_up(self, number = None, name = None):
 
@@ -117,6 +108,7 @@ class User():
         
         return final_values
 
+
     def get_all(self):
 
         cur = self.con.cursor()
@@ -128,6 +120,9 @@ class User():
         
         final_values = tpl_lst_to_lst(values)
         
+        if len(final_values) == 0:
+            raise NoResultFoundException
+        
         return final_values
 
 
@@ -136,26 +131,6 @@ def stop(con):
     con.close()
     sys.exit()
 
-
-def return_users(con):
-
-    cur = con.cursor()
-
-    sql_c = """
-    SELECT name FROM sqlite_master WHERE type='table';
-    """
-    
-    res = cur.execute(sql_c)
-    values = res.fetchall()
-    
-    final_values = []
-    31
-    for elem in values:
-        final = elem[0].replace("_sp_", " ")
-        final_values.append(final)
-    
-    return final_values
-    
 
 def tpl_lst_to_lst(tuple_list):
     
@@ -178,15 +153,50 @@ def input_check(choice, final_inp):
             
     except ValueError:
 
-        print(f"\n{Fore.RED}{choice} is not a valid option - (1 - {final_inp}){Style.RESET_ALL}\n")
+        error_txt(f"\{choice} is not a valid option - (1 - {final_inp}\n")
         return False, None                            
             
     if choice not in range(1, final_inp + 1):
-        print(f"\n{Fore.RED}{choice} is not a valid option - (1 - {final_inp}){Style.RESET_ALL}\n")
+        error_txt(f"\n{choice} is not a valid option - (1 - {final_inp})\n")
         return False, None
 
     return True, choice
 
+
+def error_txt(text):
+    print(f"{Fore.RED}{text}{Style.RESET_ALL}")
+
+
+def header_txt(text):
+    print(f"{Fore.CYAN}{text}{Style.RESET_ALL}")
+
+
+def gen_table(res):
+
+        headers = ["Name", "Country Code", "Number"]
+
+        print(tabulate.tabulate(res, headers, tablefmt="pretty")) 
+
+
+def return_users(con):
+
+    cur = con.cursor()
+
+    sql_c = """
+    SELECT name FROM sqlite_master WHERE type='table';
+    """
+    
+    res = cur.execute(sql_c)
+    values = res.fetchall()
+    
+    final_values = []
+    31
+    for elem in values:
+        final = elem[0].replace("_sp_", " ")
+        final_values.append(final)
+    
+    return final_values
+    
 
 def new_user(con):
     
@@ -201,7 +211,7 @@ def new_user(con):
         
         for letter in name:
             if letter in blacklist:
-                print(f"{Fore.RED}\nUnsupported name. Please try again.{Style.RESET_ALL}\n")
+                error_txt("\nUnsupported name. Please try again.\n")
                 failed = True
                 break
             else:
@@ -212,7 +222,7 @@ def new_user(con):
         
         if len(name) >= 14:
             
-            print(f"{Fore.RED}\nThat name is too long. PLease input a new one{Style.RESET_ALL}\n")
+            error_txt("\nThat name is too long. PLease input a new one\n")
             continue  
         else:
             
@@ -222,7 +232,7 @@ def new_user(con):
             try:
                 current_user.create_table()
             except sqlite3.OperationalError:
-                print(f"{Fore.RED}\nA error occurred. Please try again.{Style.RESET_ALL}\n")
+                error_txt("\nA error occurred. Please try again.\n")
                 continue
             
             return current_user
@@ -248,7 +258,7 @@ def boot_up(con):
             print(total_size)
 
             print(f"\n{Fore.BLUE}Welcome back!{Style.RESET_ALL}\n")
-            print(f"{Fore.CYAN}Please choose a user (1 - {total_size}):{Style.RESET_ALL}\n")
+            header_txt(f"Please choose a user (1 - {total_size}):\n")
             
             for i in range(true_size):
                 print(str(i + 1) + f" - {users[i]}\n")
@@ -282,7 +292,7 @@ def delete_user(users, con):
     total_size = true_size + 1
     
     while True:
-        print(f"{Fore.CYAN}Choose a user to delete (1 - {total_size}):{Style.RESET_ALL}\n")     
+        header_txt(f"Choose a user to delete (1 - {total_size}):\n")     
                 
         for i in range(true_size):
             print(str(i + 1) + f" - {users[i]}\n")
@@ -308,7 +318,7 @@ def operations(user):
 
     while True:
         
-        print(f"\n{Fore.CYAN}Please choose an operation (1 - 7):{Style.RESET_ALL}\n")
+        header_txt(f"\nPlease choose an operation (1 - 7):\n")
         print("1 - Show full phonebook")
         print("2 - Look up a number or name")
         print("3 - Add a new number")
@@ -324,6 +334,11 @@ def operations(user):
             os.remove("phonebook_data.db")
             main()
         
+        if choice[:10] == "test_11037":
+            amt = choice[11:]
+            gen_test_cases(int(amt), user)
+            operations(user)
+
         flag, choice = input_check(choice, 7)
         
         if flag == False:
@@ -331,9 +346,9 @@ def operations(user):
         
         match choice:
             case 1:
-                pass
+                show_phonebook(user)
             case 2:
-                search_phonebook_single(user)
+                search_phonebook(user)
             case 3:
                 add_number(user)
             case 4:
@@ -346,10 +361,77 @@ def operations(user):
                 return
 
 
-def search_phonebook_single(user):
+def show_phonebook(user):
+
+    max_per_page = 25
+    try:
+        res = user.get_all()
+    except NoResultFoundException:
+        print("\nNo numbers saved in phonebook.\n")
+        input("Press ENTER to continue\n")
+        return
+    else:
+        total_pages = math.ceil(len(res)/max_per_page)
+        last_page = len(res)%max_per_page
+        page = 1
+        while True:
+            if page == total_pages:
+                page_res = res[(page-1)*max_per_page:(page-1)*max_per_page+last_page]
+            else:
+                page_res = res[(page-1)*max_per_page:page*max_per_page]
+
+            gen_table(page_res)
+
+            print(f"\nPage {page} out of {total_pages}\n")
+            
+            if total_pages == 1:
+                print("1 - Return")
+            elif page == 1:
+                print("1 - Next Page")
+                print("2 - Return")
+            elif page == total_pages:
+                print("1 - Previous Page")
+                print("2 - Return")
+            else:
+                print("1 - Next Page")
+                print("2 - Previous Page")
+                print("3 - Return")
+
+            choice = input().strip()
+
+            if page == 1 or page == total_pages:
+                flag, choice = input_check(choice, 2)
+            else:
+                flag, choice = input_check(choice, 3)
+            
+            if flag == False:   
+                continue
+            
+            if total_pages == 1:
+                return
+            elif page == 1:
+                if choice == 1:
+                    page += 1
+                else:
+                    return
+            elif page == total_pages:
+                if choice == 1:
+                    page -= 1
+                else:
+                    return
+            else:
+                if choice == 1:
+                    page += 1
+                elif choice == 2:
+                    page -= 1
+                else:
+                    return
+           
+
+def search_phonebook(user):
 
     number = True
-    print(f"\n{Fore.CYAN}Please input a name or a number:{Style.RESET_ALL}\n")
+    header_txt(f"\nPlease input a name or a number:\n")
 
     choice = input().strip()
     
@@ -375,9 +457,7 @@ def search_phonebook_single(user):
     
     if no_res == False:
         
-        headers = ["Name", "Country Code", "Number"]
-
-        print(tabulate.tabulate(res, headers, tablefmt="pretty"))
+        gen_table(res)
 
     input("\nPress ENTER to continue\n")
 
@@ -386,41 +466,41 @@ def add_number(user):
 
     while True:
 
-        print(f"{Fore.CYAN}\nPlease input the name:\n{Style.RESET_ALL}")
+        error_txt("\nPlease input the name:\n")
         
         name = input().strip()
 
         if len(name) == 0 or len(name) >= 20:
-            print(f"{Fore.RED}\nPlease input a name of valid size.{Style.RESET_ALL}")
+            error_txt("\nPlease input a name of valid size.")
             continue
         if name.isdigit() == True:
-            print(f"{Fore.RED}\nName cannot be composed of only digits. Please try again.{Style.RESET_ALL}")
+            error_txt("\nName cannot be composed of only digits. Please try again.")
             continue
         break
     
     while True:
 
-        print(f"{Fore.CYAN}\nPlease input the code and number separated by a space:{Style.RESET_ALL}")
+        header_txt("\nPlease input the code and number separated by a space:")
 
         data = list(input().strip().split(" "))
 
         if len(data) == 1:
             
-            print(f"{Fore.RED}\nPlease make sure the code and number are separated.{Style.RESET_ALL}")
+            error_txt("\nPlease make sure the code and number are separated.")
             continue
         
         if len(data) > 2 or len(data) == 0:
             
-            print(f"{Fore.RED}\nPlease input a valid code and number.{Style.RESET_ALL}")
+            error_txt("\nPlease input a valid code and number.")
             continue
         
         if data[1].isdigit() == False:
 
-            print(f"{Fore.RED}\nNumber can only contain digits. Please try again{Style.RESET_ALL}")
+            error_txt("\nNumber can only contain digits. Please try again.")
             continue
         elif len(data[1]) > 12 or len(data[1]) < 4:
             
-            print(f"{Fore.RED}\nPlease input a valid number size.{Style.RESET_ALL}")
+            error_txt("\nPlease input a valid number size.")
             continue
         else:
             number = data[1]
@@ -431,21 +511,23 @@ def add_number(user):
             code = data[0]
 
         if code[1:].isdigit() == False:
-            print(f"{Fore.RED}\nCode can only contain a + symbol followed by numbers. Please try again{Style.RESET_ALL}")
+            error_txt("\nCode can only contain a + symbol followed by numbers. Please try again.")
             continue
         
         if len(code) > 4 or len(code) < 2:
-            print(f"{Fore.RED}\nPlease input a valid code size.{Style.RESET_ALL}")
+            error_txt("\nPlease input a valid code size.")
             continue
         
         break
-
-    user.add_entry(number, name, code)
-
+    try:
+        user.add_entry(number, name, code)
+    except sqlite3.IntegrityError:
+        error_txt(f"Failed to add {number} to list.\nCAUSE: Already added.")
+        
 
 def remove_number(user):
 
-    print(f"{Fore.CYAN}\nPlease input the number to remove:{Style.RESET_ALL}")
+    header_txt("\nPlease input the number to remove:")
 
     number = input().strip()
     
@@ -455,9 +537,9 @@ def remove_number(user):
         print("\nUser not Found.\n")
     else:
         if len(res) != 1:
-            print(f"{Fore.RED}\nMultiple users found please try again.{Style.RESET_ALL}\n")
+            error_txt("\nMultiple users found please try again.\n")
         elif len(number) < 4 or len(number) > 12:
-            print(f"{Fore.RED}\nPlease input a valid number{Style.RESET_ALL}\n")
+            error_txt("\nPlease input a valid number.\n")
         else:
             user.remove_entry(number)
             print(f"\n{res[0][0]} (nº{res[0][2]}) was deleted.\n")
@@ -475,7 +557,33 @@ def main():
         operations(current_user)
     
 
+def gen_test_cases(amount, user):
+    
+    con = sqlite3.connect("phonebook_data.db")
+    letters = list(string.ascii_lowercase)
+    a = 0
+    b = 0
+    c = 0
+    for i in range(amount):
+        
+        try:
+            user.add_entry(str(100000000 + i),f"test_{letters[a]}{letters[b]}{letters[c]}", "+404")
+        except sqlite3.IntegrityError:
+            error_txt(f"Failed test_{letters[a]}{letters[b]}{letters[c]}")
+        
+        c += 1
+        
+        if c >= len(letters):
+            c = 0
+            b += 1
+        if b >= len(letters):
+            b = 0 
+            a += 1
+        
+    
+    con.close()
+
+
 if __name__ == "__main__":
 
     main()
-
