@@ -5,7 +5,9 @@ from colorama import Fore, Style
 import tabulate
 import string
 import math
-
+import subprocess
+import platform
+import time
 
 class NoResultFoundException(Exception):
     "Raised when return given by the SQL command"
@@ -357,7 +359,7 @@ def operations(user):
             case 5:
                 change_number_name(user)
             case 6:
-                pass
+                import_contacts(user)
             case 7:
                 return
 
@@ -594,6 +596,98 @@ def change_number_name(user):
     input("Press ENTER to continue\n")
 
 
+def import_contacts(user):
+
+    header_txt("\nPlease look to opened window to processed\n")
+
+    filename = "import_file.txt"
+
+    with open(filename, "w", encoding="utf-8") as f:
+        
+        f.write("When done save and close the file.\n")
+        f.write("\nPlease write the contact in the following format:\nName CountryCode Number\n")
+    
+    if platform.system() == 'Darwin':       # macOS
+        subprocess.call(('open', filename))
+    elif platform.system() == 'Windows':    # Windows
+        os.startfile(filename)
+    else:                                   # linux variants
+        subprocess.call(('xdg-open', filename))
+
+    input("Press ENTER when done.\n")
+
+    with open(filename, "r", encoding="utf-8") as f:
+
+        for i in range(4):
+            f.readline()
+
+        line_n = 5
+        total = 0
+        done = 0
+        failed = 0
+
+        for line in f.readlines():
+            
+            data = line.strip().split(" ")
+
+            if len(data) != 3:
+                error_txt(f"Failed to add line nº{line_n}({line.strip()}).")
+                failed += 1
+                line_n += 1
+                total += 1
+                continue
+            
+            name = data[0]
+            
+            if len(name) > 20 or len(name) == 0 or name.isdigit():
+                error_txt(f"{name} in line nº{line_n} is not valid.")
+                failed += 1
+                line_n += 1
+                total += 1
+                continue
+            
+            if data[1][0] == "+":
+                code = data[1]
+            else:
+                code = "+" + data[1]
+            
+            if code[1:].isdigit() == False or len(code) > 4 or len(code) < 2:
+                error_txt(f"{code} in line nº{line_n} is not valid.")
+                failed += 1
+                line_n += 1
+                total += 1
+                continue
+            
+            number = data[2]
+
+            if len(number) > 12 or len(number) < 4 or len(number) == 0:
+                error_txt(f"{number} in line nº{line_n} is not valid.")
+                failed += 1
+                line_n += 1
+                total += 1
+                continue
+
+
+            try:
+                user.add_entry(number, name, code)
+            except sqlite3.IntegrityError:
+                error_txt(f"{number} in line nº{line_n} already exists in phonebook.")
+                failed += 1
+                line_n += 1
+                total += 1
+                continue
+            else:
+                print(f"Successfully added {name} - {number} to phonebook")
+                done += 1
+                
+            total += 1
+            line_n += 1
+
+    os.remove(filename)
+    print(f"Out of {total} contacts {done} were added and {failed} failed.")
+    input("Press ENTER when done.")
+
+
 def main():
     
     con = sqlite3.connect("phonebook_data.db")
@@ -625,8 +719,7 @@ def gen_test_cases(amount, user):
             b += 1
         if b >= len(letters):
             b = 0 
-            a += 1
-        
+            a += 1   
     
     con.close()
 
