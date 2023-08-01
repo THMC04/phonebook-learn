@@ -7,7 +7,7 @@ import string
 import math
 import subprocess
 import platform
-import time
+
 
 class NoResultFoundException(Exception):
     "Raised when return given by the SQL command"
@@ -150,12 +150,9 @@ def tpl_lst_to_lst(tuple_list):
 
 def input_check(choice, final_inp):
     
-    try:
-                
-        choice = int(choice)
-            
+    try:            
+        choice = int(choice)       
     except ValueError:
-
         error_txt(f"\{choice} is not a valid option - (1 - {final_inp}\n")
         return False, None                            
             
@@ -193,7 +190,7 @@ def return_users(con):
     values = res.fetchall()
     
     final_values = []
-    31
+    
     for elem in values:
         final = elem[0].replace("_sp_", " ")
         final_values.append(final)
@@ -207,11 +204,10 @@ def new_user(con):
     blacklist.pop(13)
     blacklist.pop(-6)
     
-    
     while True:
+        
         name = input("What is the new user's name?\n")
-        
-        
+         
         for letter in name:
             if letter in blacklist:
                 error_txt("\nUnsupported name. Please try again.\n")
@@ -367,6 +363,7 @@ def operations(user):
 def show_phonebook(user):
 
     max_per_page = 25
+    
     try:
         res = user.get_all()
     except NoResultFoundException:
@@ -377,7 +374,9 @@ def show_phonebook(user):
         total_pages = math.ceil(len(res)/max_per_page)
         last_page = len(res)%max_per_page
         page = 1
+        
         while True:
+            
             if page == total_pages:
                 page_res = res[(page-1)*max_per_page:(page-1)*max_per_page+last_page]
             else:
@@ -522,6 +521,7 @@ def add_number(user):
             continue
         
         break
+    
     try:
         user.add_entry(number, name, code)
     except sqlite3.IntegrityError:
@@ -556,6 +556,7 @@ def remove_number(user):
 def change_number_name(user):
 
     while True:
+        
         header_txt("\nPlease input the number who's name you want to change:\n")
 
         number = input().strip()
@@ -569,6 +570,7 @@ def change_number_name(user):
         if len(data) > 1:
             error_txt("Multiple users found. Please try again.\n")
             continue
+        
         if number.isdigit() == False: 
             error_txt("Please input a valid number.\n")
             continue    
@@ -584,6 +586,7 @@ def change_number_name(user):
         if len(name) == 0 or len(name) >= 20:
             error_txt("\nPlease input a name of valid size.")
             continue
+        
         if name.isdigit():
             error_txt("\nName cannot be composed of only digits. Please try again.")
             continue
@@ -667,7 +670,6 @@ def import_contacts(user):
                 total += 1
                 continue
 
-
             try:
                 user.add_entry(number, name, code)
             except sqlite3.IntegrityError:
@@ -701,10 +703,13 @@ def main():
 def gen_test_cases(amount, user):
     
     con = sqlite3.connect("phonebook_data.db")
+    
     letters = list(string.ascii_lowercase)
+    
     a = 0
     b = 0
     c = 0
+    
     for i in range(amount):
         
         try:
@@ -717,6 +722,7 @@ def gen_test_cases(amount, user):
         if c >= len(letters):
             c = 0
             b += 1
+        
         if b >= len(letters):
             b = 0 
             a += 1   
@@ -727,3 +733,4 @@ def gen_test_cases(amount, user):
 if __name__ == "__main__":
 
     main()
+
