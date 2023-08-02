@@ -7,6 +7,8 @@ import string
 import math
 import subprocess
 import platform
+import tkinter as tk
+from tkinter import filedialog
 
 
 class NoResultFoundException(Exception):
@@ -178,6 +180,13 @@ def gen_table(res):
         print("\n" + tabulate.tabulate(res, headers, tablefmt="pretty")) 
 
 
+def stoppoint():
+    """
+    Adds a stop point to let the user read results and continue when ready
+    """
+    input("Press ENTER to continue\n")
+
+
 def return_users(con):
 
     cur = con.cursor()
@@ -324,7 +333,8 @@ def operations(user):
         print("4 - Remove a number")
         print("5 - Change a number's associated name")
         print("6 - Insert large amount of numbers")
-        print("7 - Return\n")
+        print("7 - Export contacts")
+        print("8 - Return\n")
 
         choice = input().strip()
         
@@ -338,7 +348,7 @@ def operations(user):
             gen_test_cases(int(amt), user)
             operations(user)
 
-        flag, choice = input_check(choice, 7)
+        flag, choice = input_check(choice, 8)
         
         if flag == False:
             continue
@@ -357,6 +367,8 @@ def operations(user):
             case 6:
                 import_contacts(user)
             case 7:
+                export_contacts(user)
+            case 8:
                 return
 
 
@@ -368,7 +380,7 @@ def show_phonebook(user):
         res = user.get_all()
     except NoResultFoundException:
         print("\nNo numbers saved in phonebook.\n")
-        input("Press ENTER to continue\n")
+        stoppoint()
         return
     else:
         total_pages = math.ceil(len(res)/max_per_page)
@@ -528,7 +540,7 @@ def add_number(user):
         error_txt(f"Failed to add {number} to list.\nCAUSE: Already added.")
     else:
         print("\nNumber added.\n")
-        input("Press ENTER to continue\n")
+        stoppoint()
 
 
 def remove_number(user):
@@ -550,7 +562,7 @@ def remove_number(user):
             user.remove_entry(number)
             print(f"\n{res[0][0]} (nº{res[0][2]}) was deleted.\n")
 
-    input("Press ENTER to continue\n")
+    stoppoint()
 
 
 def change_number_name(user):
@@ -596,7 +608,7 @@ def change_number_name(user):
     user.replace_entry(number, name)
     
     print(f"\n{data[0][0]} was changed to {name}.\n")
-    input("Press ENTER to continue\n")
+    stoppoint()
 
 
 def import_contacts(user):
@@ -688,6 +700,29 @@ def import_contacts(user):
     os.remove(filename)
     print(f"Out of {total} contacts {done} were added and {failed} failed.")
     input("Press ENTER when done.")
+
+
+def export_contacts(user):
+
+    data = user.get_all()
+
+    root = tk.Tk()
+    root.lift()
+    root.withdraw()
+    
+    print("\nPlease look for the window that opened.\n")
+    
+    file_path = filedialog.askopenfilename(title="Choose the file to save the contacts", filetypes=[("txt files", "*.txt")])
+    
+    with open(file_path, "w", encoding="utf-8") as f:
+        
+        for line in data:
+            
+            # Name CountryCode Number
+            f.write(f"{line[0]} {line[1]} {line[2]}\n")
+        
+    print(f"Added {len(data)} contacts to the file.\n")
+    stoppoint()
 
 
 def main():
